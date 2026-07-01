@@ -2,17 +2,17 @@ version: "3.9"
 
 services:
   db:
-    image: mysql:8.0
+    image: postgres:15
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
-      MYSQL_DATABASE: comercio_estoque
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: comercio_estoque
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     ports:
-      - "3306:3306"
+      - "5432:5432"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,7 +24,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-root}@db/comercio_estoque
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db/comercio_estoque
       SECRET_KEY: ${SECRET_KEY:-vestpro-secret-key-producao}
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 480
@@ -45,4 +45,4 @@ services:
       - "80:80"
 
 volumes:
-  mysql_data:
+  postgres_data:

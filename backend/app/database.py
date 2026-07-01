@@ -8,7 +8,7 @@ load_dotenv()
 
 SQLALCHEMY_DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "mysql+pymysql://root:root@localhost/comercio_estoque"
+    "postgresql://postgres:postgres@localhost/comercio_estoque"
 )
 
 engine = create_engine(
