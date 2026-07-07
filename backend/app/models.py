@@ -112,7 +112,7 @@ class Product(Base):
     preco_custo = Column(Float, nullable=True)
     quantidade_estoque = Column(Integer, default=0)
     estoque_minimo = Column(Integer, default=5)
-    image_url = Column(String(500), nullable=True)
+    image_url = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
