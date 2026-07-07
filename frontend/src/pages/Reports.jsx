@@ -33,6 +33,8 @@ function Reports() {
     const [financialReport, setFinancialReport] = useState([]);
     const [devolutionReport, setDevolutionReport] = useState([]);
     const [exchangeRates, setExchangeRates] = useState([]);
+    const [exchangeLoading, setExchangeLoading] = useState(false);
+    const [exchangeError, setExchangeError] = useState(null);
     const [financialYear, setFinancialYear] = useState(new Date().getFullYear());
     const [devDateRange, setDevDateRange] = useState({ startDate: daysAgo(30), endDate: today() });
     const [loading, setLoading] = useState(false);
@@ -174,8 +176,11 @@ function Reports() {
     };
 
     const loadExchangeRates = async () => {
+        setExchangeLoading(true);
+        setExchangeError(null);
         try {
             const r = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL,GBP-BRL');
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
             const data = await r.json();
             const mapping = [
                 { key: 'USDBRL', moeda: 'Dólar Americano', codigo: 'USD' },
@@ -191,10 +196,18 @@ function Reports() {
                     ask: parseFloat(data[m.key].ask),
                     updated_at: data[m.key].create_date,
                 }));
+            if (rates.length === 0) throw new Error('Sem dados');
             setExchangeRates(rates);
-        } catch {
-            // fallback para o backend se a API direta falhar
-            try { const r = await reportsAPI.getExchangeRates(); setExchangeRates(r.data); } catch {}
+        } catch (err) {
+            try {
+                const r = await reportsAPI.getExchangeRates();
+                if (r.data && r.data.length > 0) { setExchangeRates(r.data); }
+                else setExchangeError('Não foi possível carregar as cotações. Tente novamente.');
+            } catch {
+                setExchangeError('Não foi possível carregar as cotações. Verifique sua conexão.');
+            }
+        } finally {
+            setExchangeLoading(false);
         }
     };
 
@@ -754,8 +767,15 @@ function Reports() {
                                 Dados via <strong>AwesomeAPI</strong> (API externa em tempo real)
                             </p>
                         </div>
-                        <button className="btn btn-secondary" onClick={loadExchangeRates}>🔄 Atualizar</button>
+                        <button className="btn btn-secondary" onClick={loadExchangeRates} disabled={exchangeLoading}>
+                            {exchangeLoading ? '⏳ Atualizando...' : '🔄 Atualizar'}
+                        </button>
                     </div>
+                    {exchangeError && (
+                        <div style={{ color: 'var(--danger, #e74c3c)', padding: '0.5rem 0', fontSize: '0.9rem' }}>
+                            ⚠️ {exchangeError}
+                        </div>
+                    )}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', padding: '1rem 0' }}>
                         {exchangeRates.map(rate => (
                             <div key={rate.codigo} style={{
