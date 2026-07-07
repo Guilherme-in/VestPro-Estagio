@@ -52,7 +52,7 @@ function Movements() {
         try {
             setLoading(true);
             const [movementsRes, productsRes, customersRes, suppliersRes] = await Promise.all([
-                movementsAPI.getAll(),
+                movementsAPI.getAll({ limit: 1000 }),
                 productsAPI.getAll(),
                 customersAPI.getAll(),
                 suppliersAPI.getAll(),
