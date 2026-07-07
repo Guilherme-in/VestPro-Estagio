@@ -27,6 +27,7 @@ function Products() {
     const [categories, setCategories] = useState([]);
     const [confirmDelete, setConfirmDelete] = useState(null);
     const [uploadingId, setUploadingId] = useState(null);
+    const [viewProduct, setViewProduct] = useState(null);
 
     useEffect(() => {
         loadProducts();
@@ -124,13 +125,25 @@ function Products() {
             setUploadingId(productId);
             const fd = new FormData();
             fd.append('file', file);
-            await productsAPI.uploadImage(productId, fd);
+            const res = await productsAPI.uploadImage(productId, fd);
             showMessage('Foto atualizada com sucesso!');
+            if (viewProduct?.id === productId) setViewProduct(res.data);
             loadProducts();
         } catch {
             showMessage('Erro ao enviar foto', 'danger');
         } finally {
             setUploadingId(null);
+        }
+    };
+
+    const handleImageDelete = async (productId) => {
+        try {
+            const res = await productsAPI.deleteImage(productId);
+            showMessage('Foto removida com sucesso!');
+            if (viewProduct?.id === productId) setViewProduct(res.data);
+            loadProducts();
+        } catch {
+            showMessage('Erro ao remover foto', 'danger');
         }
     };
 
@@ -198,6 +211,85 @@ function Products() {
             {message && (
                 <div className={`alert alert-${message.type}`}>
                     {message.text}
+                </div>
+            )}
+
+            {viewProduct && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+                    onClick={() => setViewProduct(null)}>
+                    <div style={{ background: 'var(--bg-secondary)', borderRadius: 16, padding: '2rem', maxWidth: 680, width: '100%', display: 'flex', gap: '2rem', boxShadow: '0 20px 60px rgba(0,0,0,0.4)', position: 'relative' }}
+                        onClick={e => e.stopPropagation()}>
+                        <button onClick={() => setViewProduct(null)} style={{ position: 'absolute', top: 12, right: 16, background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: 'var(--text-muted)' }}>✕</button>
+
+                        {/* Coluna da foto */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', minWidth: 180 }}>
+                            {viewProduct.image_url ? (
+                                <img src={viewProduct.image_url} alt={viewProduct.nome}
+                                    style={{ width: 180, height: 180, objectFit: 'cover', borderRadius: 12, border: '2px solid var(--border)' }} />
+                            ) : (
+                                <div style={{ width: 180, height: 180, borderRadius: 12, border: '2px dashed var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', gap: 8 }}>
+                                    <span style={{ fontSize: '2.5rem' }}>📷</span>
+                                    Sem foto
+                                </div>
+                            )}
+                            <label style={{ cursor: 'pointer', width: '100%' }}>
+                                <div className="btn btn-primary" style={{ width: '100%', textAlign: 'center', fontSize: '0.82rem' }}>
+                                    {uploadingId === viewProduct.id ? 'Enviando...' : viewProduct.image_url ? '🔄 Trocar foto' : '📷 Adicionar foto'}
+                                </div>
+                                <input type="file" accept="image/*" style={{ display: 'none' }}
+                                    onChange={e => handleImageUpload(viewProduct.id, e.target.files[0])} />
+                            </label>
+                            {viewProduct.image_url && (
+                                <button className="btn btn-danger" style={{ width: '100%', fontSize: '0.82rem' }}
+                                    onClick={() => handleImageDelete(viewProduct.id)}>
+                                    🗑 Remover foto
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Coluna de informações */}
+                        <div style={{ flex: 1 }}>
+                            <h2 style={{ margin: '0 0 0.25rem', fontSize: '1.25rem' }}>{viewProduct.nome}</h2>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{viewProduct.codigo}</span>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '1.25rem' }}>
+                                {[
+                                    { label: 'Categoria', value: viewProduct.categoria || '—' },
+                                    { label: 'Tamanho', value: viewProduct.tamanho || '—' },
+                                    { label: 'Cor', value: viewProduct.cor || '—' },
+                                    { label: 'Estoque mínimo', value: viewProduct.estoque_minimo },
+                                    { label: 'Preço de custo', value: viewProduct.preco_custo ? formatCurrency(viewProduct.preco_custo) : '—' },
+                                    { label: 'Preço de venda', value: formatCurrency(viewProduct.preco) },
+                                ].map(({ label, value }) => (
+                                    <div key={label}>
+                                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>{label}</div>
+                                        <div style={{ fontSize: '0.95rem', fontWeight: 500, marginTop: 2 }}>{value}</div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div style={{ marginTop: '1.25rem', padding: '0.75rem 1rem', borderRadius: 10, background: viewProduct.quantidade_estoque <= viewProduct.estoque_minimo ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)', border: `1px solid ${viewProduct.quantidade_estoque <= viewProduct.estoque_minimo ? '#ef4444' : '#10b981'}` }}>
+                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Estoque atual</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: viewProduct.quantidade_estoque <= viewProduct.estoque_minimo ? '#ef4444' : '#10b981' }}>
+                                    {viewProduct.quantidade_estoque} unidades
+                                    {viewProduct.quantidade_estoque <= viewProduct.estoque_minimo && ' ⚠️'}
+                                </div>
+                            </div>
+
+                            {viewProduct.preco_custo && (
+                                <div style={{ marginTop: '0.75rem', fontSize: '0.88rem', color: 'var(--text-muted)' }}>
+                                    Margem: <strong style={{ color: ((viewProduct.preco - viewProduct.preco_custo) / viewProduct.preco * 100) >= 0 ? '#10b981' : '#ef4444' }}>
+                                        {((viewProduct.preco - viewProduct.preco_custo) / viewProduct.preco * 100).toFixed(1)}%
+                                    </strong>
+                                </div>
+                            )}
+
+                            <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.5rem' }}>
+                                <button className="btn btn-primary btn-sm" onClick={() => { setViewProduct(null); handleEdit(viewProduct); }}>Editar produto</button>
+                                <button className="btn btn-secondary btn-sm" onClick={() => setViewProduct(null)}>Fechar</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -412,15 +504,12 @@ function Products() {
                                             </td>
                                             <td>
                                                 <div className="flex gap-sm" style={{ alignItems: 'center' }}>
-                                                    {product.image_url ? (
-                                                        <img src={product.image_url} alt="" style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover', border: '1px solid var(--border)' }} />
-                                                    ) : (
-                                                        <label title="Upload foto" style={{ cursor: 'pointer', fontSize: '1.1rem', opacity: 0.5 }}>
-                                                            📷
-                                                            <input type="file" accept="image/*" style={{ display: 'none' }}
-                                                                onChange={e => handleImageUpload(product.id, e.target.files[0])} />
-                                                        </label>
-                                                    )}
+                                                    <button title="Ver detalhes" onClick={() => setViewProduct(product)}
+                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 6, fontSize: '1.1rem', lineHeight: 1 }}>
+                                                        {product.image_url
+                                                            ? <img src={product.image_url} alt="" style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover', border: '1px solid var(--border)', display: 'block' }} />
+                                                            : <span style={{ opacity: 0.45 }}>📷</span>}
+                                                    </button>
                                                     <button className="btn btn-sm btn-primary" onClick={() => handleEdit(product)}>Editar</button>
                                                     <button className="btn btn-sm btn-danger" onClick={() => setConfirmDelete(product)}>Excluir</button>
                                                 </div>

@@ -69,6 +69,24 @@ async def upload_image(
     return product
 
 
+@router.delete("/{product_id}/image", response_model=schemas.Product)
+def delete_image(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_gerente_or_admin),
+):
+    product = db.query(models.Product).filter(
+        models.Product.id == product_id,
+        models.Product.tenant_id == current_user.tenant_id
+    ).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Produto não encontrado")
+    product.image_url = None
+    db.commit()
+    db.refresh(product)
+    return product
+
+
 @router.get("/", response_model=List[schemas.Product])
 def list_products(
     skip: int = 0,
