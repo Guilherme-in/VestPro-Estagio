@@ -4,7 +4,6 @@ from typing import List, Optional
 from app import models, schemas
 from app.database import get_db
 from app.utils.auth import get_current_user, require_admin, require_gerente_or_admin, require_can_manage_products, log_audit
-from app.utils.s3 import upload_product_image, delete_product_image
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -57,11 +56,14 @@ async def upload_image(
     if not product:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
 
-    if product.image_url:
-        delete_product_image(product.image_url)
+    allowed_types = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Tipo de arquivo não permitido. Use JPEG, PNG, WEBP ou GIF.")
 
-    url = await upload_product_image(file)
-    product.image_url = url
+    content = await file.read()
+    import base64
+    b64 = base64.b64encode(content).decode("utf-8")
+    product.image_url = f"data:{file.content_type};base64,{b64}"
     db.commit()
     db.refresh(product)
     return product
@@ -167,9 +169,6 @@ def delete_product(
             status_code=400,
             detail=f"Não é possível excluir '{db_product.nome}' pois possui {', '.join(details)} relacionada(s)."
         )
-
-    if db_product.image_url:
-        delete_product_image(db_product.image_url)
 
     nome = db_product.nome
     pid = db_product.id
