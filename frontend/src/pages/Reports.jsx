@@ -174,7 +174,28 @@ function Reports() {
     };
 
     const loadExchangeRates = async () => {
-        try { const r = await reportsAPI.getExchangeRates(); setExchangeRates(r.data); } catch {}
+        try {
+            const r = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL,GBP-BRL');
+            const data = await r.json();
+            const mapping = [
+                { key: 'USDBRL', moeda: 'Dólar Americano', codigo: 'USD' },
+                { key: 'EURBRL', moeda: 'Euro', codigo: 'EUR' },
+                { key: 'GBPBRL', moeda: 'Libra Esterlina', codigo: 'GBP' },
+            ];
+            const rates = mapping
+                .filter(m => data[m.key])
+                .map(m => ({
+                    moeda: m.moeda,
+                    codigo: m.codigo,
+                    bid: parseFloat(data[m.key].bid),
+                    ask: parseFloat(data[m.key].ask),
+                    updated_at: data[m.key].create_date,
+                }));
+            setExchangeRates(rates);
+        } catch {
+            // fallback para o backend se a API direta falhar
+            try { const r = await reportsAPI.getExchangeRates(); setExchangeRates(r.data); } catch {}
+        }
     };
 
     // ── Exportar CSV ─────────────────────────────────────────────────────────
