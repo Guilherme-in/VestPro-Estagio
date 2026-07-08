@@ -351,10 +351,10 @@ function Reports() {
                                             <th>Código</th>
                                             <th>Nome</th>
                                             <th>Categoria</th>
-                                            <th>Quantidade</th>
-                                            <th>Estoque Mínimo</th>
-                                            <th>Preço Unit.</th>
-                                            <th>Valor Total</th>
+                                            <th style={{ textAlign: 'right' }}>Quantidade</th>
+                                            <th style={{ textAlign: 'right' }}>Estoque Mínimo</th>
+                                            <th style={{ textAlign: 'right' }}>Preço Unit.</th>
+                                            <th style={{ textAlign: 'right' }}>Valor Total</th>
                                             <th>Status</th>
                                         </tr>
                                     </thead>
@@ -364,10 +364,10 @@ function Reports() {
                                                 <td>{item.codigo}</td>
                                                 <td>{item.nome}</td>
                                                 <td>{item.categoria || '-'}</td>
-                                                <td><strong>{item.quantidade_estoque}</strong></td>
-                                                <td>{item.estoque_minimo}</td>
-                                                <td>{formatCurrency(item.preco)}</td>
-                                                <td>{formatCurrency(item.preco * item.quantidade_estoque)}</td>
+                                                <td style={{ textAlign: 'right' }}><strong>{item.quantidade_estoque}</strong></td>
+                                                <td style={{ textAlign: 'right' }}>{item.estoque_minimo}</td>
+                                                <td style={{ textAlign: 'right' }}>{formatCurrency(item.preco)}</td>
+                                                <td style={{ textAlign: 'right' }}>{formatCurrency(item.preco * item.quantidade_estoque)}</td>
                                                 <td>
                                                     {item.baixo_estoque
                                                         ? <span className="badge badge-warning">⚠️ Baixo Estoque</span>
@@ -432,8 +432,8 @@ function Reports() {
                                         <tr>
                                             <th>Código</th>
                                             <th>Produto</th>
-                                            <th>Quantidade Vendida</th>
-                                            <th>Valor Total</th>
+                                            <th style={{ textAlign: 'right' }}>Quantidade Vendida</th>
+                                            <th style={{ textAlign: 'right' }}>Valor Total</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -441,8 +441,8 @@ function Reports() {
                                             <tr key={index}>
                                                 <td>{item.product_codigo}</td>
                                                 <td>{item.product_nome}</td>
-                                                <td>{item.total_vendido}</td>
-                                                <td>{formatCurrency(item.valor_total)}</td>
+                                                <td style={{ textAlign: 'right' }}>{item.total_vendido}</td>
+                                                <td style={{ textAlign: 'right' }}>{formatCurrency(item.valor_total)}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -635,8 +635,8 @@ function Reports() {
                                     <tr>
                                         <th>Código</th>
                                         <th>Produto</th>
-                                        <th>Qtd Devolvida</th>
-                                        <th>Valor Estimado</th>
+                                        <th style={{ textAlign: 'right' }}>Qtd Devolvida</th>
+                                        <th style={{ textAlign: 'right' }}>Valor Estimado</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -644,8 +644,8 @@ function Reports() {
                                         <tr key={i}>
                                             <td>{item.product_codigo}</td>
                                             <td>{item.product_nome}</td>
-                                            <td><strong>{item.total_devolvido}</strong></td>
-                                            <td>{formatCurrency(item.valor_estimado)}</td>
+                                            <td style={{ textAlign: 'right' }}><strong>{item.total_devolvido}</strong></td>
+                                            <td style={{ textAlign: 'right' }}>{formatCurrency(item.valor_estimado)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -709,12 +709,12 @@ function Reports() {
                                             <tr>
                                                 <th>#</th>
                                                 <th>Produto</th>
-                                                <th>Preço Custo</th>
-                                                <th>Preço Venda</th>
-                                                <th>Lucro Unit.</th>
-                                                <th>Margem %</th>
-                                                <th>Estoque</th>
-                                                <th>Lucro Potencial</th>
+                                                <th style={{ textAlign: 'right' }}>Preço Custo</th>
+                                                <th style={{ textAlign: 'right' }}>Preço Venda</th>
+                                                <th style={{ textAlign: 'right' }}>Lucro Unit.</th>
+                                                <th style={{ textAlign: 'right' }}>Margem %</th>
+                                                <th style={{ textAlign: 'right' }}>Estoque</th>
+                                                <th style={{ textAlign: 'right' }}>Lucro Potencial</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -730,9 +730,9 @@ function Reports() {
                                                             <div style={{ fontWeight: 600 }}>{p.nome}</div>
                                                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{p.codigo}</div>
                                                         </td>
-                                                        <td>{formatCurrency(p.preco_custo)}</td>
-                                                        <td>{formatCurrency(p.preco)}</td>
-                                                        <td style={{ color: lucroUnit >= 0 ? '#10b981' : '#ef4444', fontWeight: 600 }}>
+                                                        <td style={{ textAlign: 'right' }}>{formatCurrency(p.preco_custo)}</td>
+                                                        <td style={{ textAlign: 'right' }}>{formatCurrency(p.preco)}</td>
+                                                        <td style={{ textAlign: 'right', color: lucroUnit >= 0 ? '#10b981' : '#ef4444', fontWeight: 600 }}>
                                                             {formatCurrency(lucroUnit)}
                                                         </td>
                                                         <td>
@@ -743,8 +743,8 @@ function Reports() {
                                                                 <span style={{ fontWeight: 700, color: margemColor, fontSize: '0.85rem' }}>{margem.toFixed(1)}%</span>
                                                             </div>
                                                         </td>
-                                                        <td>{p.quantidade_estoque}</td>
-                                                        <td style={{ fontWeight: 700, color: '#f59e0b' }}>{formatCurrency(lucroPotencial)}</td>
+                                                        <td style={{ textAlign: 'right' }}>{p.quantidade_estoque}</td>
+                                                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#f59e0b' }}>{formatCurrency(lucroPotencial)}</td>
                                                     </tr>
                                                 );
                                             })}
@@ -857,9 +857,9 @@ function Reports() {
                                             <th>Categoria</th>
                                             <th>Cor</th>
                                             <th>Tamanho</th>
-                                            <th>Preço Venda</th>
-                                            <th>Preço Custo</th>
-                                            <th>Margem %</th>
+                                            <th style={{ textAlign: 'right' }}>Preço Venda</th>
+                                            <th style={{ textAlign: 'right' }}>Preço Custo</th>
+                                            <th style={{ textAlign: 'right' }}>Margem %</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -870,9 +870,9 @@ function Reports() {
                                                 <td>{p.categoria || '-'}</td>
                                                 <td>{p.cor || '-'}</td>
                                                 <td>{p.tamanho || '-'}</td>
-                                                <td style={{ fontWeight: 700, color: '#10b981' }}>{formatCurrency(p.preco)}</td>
-                                                <td style={{ color: 'var(--text-secondary)' }}>{p.preco_custo ? formatCurrency(p.preco_custo) : '-'}</td>
-                                                <td>
+                                                <td style={{ textAlign: 'right', fontWeight: 700, color: '#10b981' }}>{formatCurrency(p.preco)}</td>
+                                                <td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{p.preco_custo ? formatCurrency(p.preco_custo) : '-'}</td>
+                                                <td style={{ textAlign: 'right' }}>
                                                     {p.margem_lucro != null ? (
                                                         <span style={{ fontWeight: 700, color: p.margem_lucro >= 50 ? '#10b981' : p.margem_lucro >= 20 ? '#f59e0b' : '#ef4444' }}>
                                                             {p.margem_lucro.toFixed(1)}%
