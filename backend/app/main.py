@@ -18,6 +18,25 @@ logger = logging.getLogger("vestpro")
 
 Base.metadata.create_all(bind=engine)
 
+# Migrations manuais para colunas adicionadas após criação inicial
+def run_migrations():
+    try:
+        with engine.connect() as conn:
+            from sqlalchemy import text
+            migrations = [
+                "ALTER TABLE customers ADD COLUMN IF NOT EXISTS tipo_pessoa VARCHAR(2) NOT NULL DEFAULT 'PF'",
+                "ALTER TABLE customers ADD COLUMN IF NOT EXISTS cnpj VARCHAR(18)",
+                "ALTER TABLE customers ADD COLUMN IF NOT EXISTS razao_social VARCHAR(200)",
+            ]
+            for sql in migrations:
+                conn.execute(text(sql))
+            conn.commit()
+        logger.info("Migrations aplicadas com sucesso.")
+    except Exception as e:
+        logger.warning("Migration ignorada: %s", e)
+
+run_migrations()
+
 app = FastAPI(
     title="VestPro Sistema de Gestão de Estoque",
     description="API para gerenciamento de estoque de comércio de roupas",

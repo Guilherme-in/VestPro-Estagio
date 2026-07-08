@@ -216,7 +216,10 @@ class Supplier(SupplierBase):
 
 class CustomerBase(BaseModel):
     nome: str = Field(..., min_length=1, max_length=200)
+    tipo_pessoa: str = Field("PF", pattern="^(PF|PJ)$")
     cpf: Optional[str] = Field(None, min_length=11, max_length=14)
+    cnpj: Optional[str] = Field(None, max_length=18)
+    razao_social: Optional[str] = Field(None, max_length=200)
     telefone: Optional[str] = Field(None, max_length=20)
     email: Optional[str] = Field(None, max_length=100)
     endereco: Optional[str] = None
@@ -228,7 +231,10 @@ class CustomerCreate(CustomerBase):
 
 class CustomerUpdate(BaseModel):
     nome: Optional[str] = Field(None, min_length=1, max_length=200)
+    tipo_pessoa: Optional[str] = Field(None, pattern="^(PF|PJ)$")
     cpf: Optional[str] = Field(None, min_length=11, max_length=14)
+    cnpj: Optional[str] = Field(None, max_length=18)
+    razao_social: Optional[str] = Field(None, max_length=200)
     telefone: Optional[str] = Field(None, max_length=20)
     email: Optional[str] = Field(None, max_length=100)
     endereco: Optional[str] = None

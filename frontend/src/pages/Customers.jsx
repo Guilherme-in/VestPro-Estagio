@@ -20,6 +20,29 @@ const maskCPF = (v) => {
     return `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6,9)}-${v.slice(9)}`;
 };
 
+const maskCNPJ = (v) => {
+    v = v.replace(/\D/g, '').slice(0, 14);
+    if (v.length <= 2) return v;
+    if (v.length <= 5) return `${v.slice(0,2)}.${v.slice(2)}`;
+    if (v.length <= 8) return `${v.slice(0,2)}.${v.slice(2,5)}.${v.slice(5)}`;
+    if (v.length <= 12) return `${v.slice(0,2)}.${v.slice(2,5)}.${v.slice(5,8)}/${v.slice(8)}`;
+    return `${v.slice(0,2)}.${v.slice(2,5)}.${v.slice(5,8)}/${v.slice(8,12)}-${v.slice(12)}`;
+};
+
+const validateCNPJ = (cnpj) => {
+    const n = cnpj.replace(/\D/g, '');
+    if (n.length !== 14) return false;
+    if (/^(\d)\1+$/.test(n)) return false;
+    const calc = (x) => {
+        const weights = x === 12 ? [5,4,3,2,9,8,7,6,5,4,3,2] : [6,5,4,3,2,9,8,7,6,5,4,3,2];
+        let s = 0;
+        for (let i = 0; i < weights.length; i++) s += parseInt(n[i]) * weights[i];
+        const r = s % 11;
+        return r < 2 ? 0 : 11 - r;
+    };
+    return calc(12) === parseInt(n[12]) && calc(13) === parseInt(n[13]);
+};
+
 const maskPhone = (v) => {
     v = v.replace(/\D/g, '').slice(0, 11);
     if (v.length <= 2) return v.length ? `(${v}` : '';
@@ -56,12 +79,16 @@ function Customers() {
     const [editingCustomer, setEditingCustomer] = useState(null);
     const [search, setSearch] = useState('');
     const [cpfError, setCpfError] = useState('');
+    const [cnpjError, setCnpjError] = useState('');
     const [cep, setCep] = useState('');
     const [cepLoading, setCepLoading] = useState(false);
     const [cepError, setCepError] = useState('');
     const [formData, setFormData] = useState({
         nome: '',
+        tipo_pessoa: 'PF',
         cpf: '',
+        cnpj: '',
+        razao_social: '',
         telefone: '',
         email: '',
         endereco: '',
@@ -121,6 +148,13 @@ function Customers() {
         if (name === 'cpf') {
             setCpfError('');
             setFormData(prev => ({ ...prev, cpf: maskCPF(value) }));
+        } else if (name === 'cnpj') {
+            setCnpjError('');
+            setFormData(prev => ({ ...prev, cnpj: maskCNPJ(value) }));
+        } else if (name === 'tipo_pessoa') {
+            setFormData(prev => ({ ...prev, tipo_pessoa: value, cpf: '', cnpj: '', razao_social: '' }));
+            setCpfError('');
+            setCnpjError('');
         } else if (name === 'telefone') {
             setFormData(prev => ({ ...prev, telefone: maskPhone(value) }));
         } else {
@@ -130,15 +164,27 @@ function Customers() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (formData.cpf) {
+        if (formData.tipo_pessoa === 'PF' && formData.cpf) {
             if (!validateCPF(formData.cpf)) {
                 setCpfError('CPF inválido. Verifique os dígitos.');
                 return;
             }
         }
+        if (formData.tipo_pessoa === 'PJ' && formData.cnpj) {
+            if (!validateCNPJ(formData.cnpj)) {
+                setCnpjError('CNPJ inválido. Verifique os dígitos.');
+                return;
+            }
+        }
         setCpfError('');
+        setCnpjError('');
         try {
-            const data = { ...formData, cpf: formData.cpf || null };
+            const data = {
+                ...formData,
+                cpf: formData.tipo_pessoa === 'PF' ? (formData.cpf || null) : null,
+                cnpj: formData.tipo_pessoa === 'PJ' ? (formData.cnpj || null) : null,
+                razao_social: formData.tipo_pessoa === 'PJ' ? (formData.razao_social || null) : null,
+            };
             if (editingCustomer) {
                 await customersAPI.update(editingCustomer.id, data);
                 showMessage('Cliente atualizado com sucesso!');
@@ -157,12 +203,16 @@ function Customers() {
         setEditingCustomer(customer);
         setFormData({
             nome: customer.nome,
+            tipo_pessoa: customer.tipo_pessoa || 'PF',
             cpf: customer.cpf || '',
+            cnpj: customer.cnpj || '',
+            razao_social: customer.razao_social || '',
             telefone: customer.telefone || '',
             email: customer.email || '',
             endereco: customer.endereco || '',
         });
         setCpfError('');
+        setCnpjError('');
         setShowForm(true);
     };
 
@@ -188,9 +238,10 @@ function Customers() {
     };
 
     const resetForm = () => {
-        setFormData({ nome: '', cpf: '', telefone: '', email: '', endereco: '' });
+        setFormData({ nome: '', tipo_pessoa: 'PF', cpf: '', cnpj: '', razao_social: '', telefone: '', email: '', endereco: '' });
         setEditingCustomer(null);
         setCpfError('');
+        setCnpjError('');
         setCep('');
         setCepError('');
         setShowForm(false);
@@ -202,10 +253,12 @@ function Customers() {
         const q = search.replace(/\D/g, '');
         const qText = search.toLowerCase();
         const cpfDigits = (c.cpf || '').replace(/\D/g, '');
+        const cnpjDigits = (c.cnpj || '').replace(/\D/g, '');
         return (
             c.nome.toLowerCase().includes(qText) ||
+            (c.razao_social || '').toLowerCase().includes(qText) ||
             (c.telefone || '').includes(qText) ||
-            (q.length > 0 && cpfDigits.includes(q))
+            (q.length > 0 && (cpfDigits.includes(q) || cnpjDigits.includes(q)))
         );
     });
 
@@ -242,9 +295,39 @@ function Customers() {
                     onClose={resetForm}
                 >
                     <form onSubmit={handleSubmit}>
+                        {/* Toggle Pessoa Física / Jurídica */}
+                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                            <button
+                                type="button"
+                                onClick={() => handleInputChange({ target: { name: 'tipo_pessoa', value: 'PF' } })}
+                                style={{
+                                    flex: 1, padding: '0.6rem', borderRadius: 'var(--radius)', border: '2px solid',
+                                    borderColor: formData.tipo_pessoa === 'PF' ? 'var(--primary)' : 'var(--border)',
+                                    background: formData.tipo_pessoa === 'PF' ? 'var(--primary)' : 'transparent',
+                                    color: formData.tipo_pessoa === 'PF' ? '#fff' : 'var(--text-secondary)',
+                                    fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
+                                }}
+                            >
+                                👤 Pessoa Física
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleInputChange({ target: { name: 'tipo_pessoa', value: 'PJ' } })}
+                                style={{
+                                    flex: 1, padding: '0.6rem', borderRadius: 'var(--radius)', border: '2px solid',
+                                    borderColor: formData.tipo_pessoa === 'PJ' ? 'var(--primary)' : 'var(--border)',
+                                    background: formData.tipo_pessoa === 'PJ' ? 'var(--primary)' : 'transparent',
+                                    color: formData.tipo_pessoa === 'PJ' ? '#fff' : 'var(--text-secondary)',
+                                    fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
+                                }}
+                            >
+                                🏢 Pessoa Jurídica
+                            </button>
+                        </div>
+
                         <div className="grid grid-2">
                             <div className="form-group">
-                                <label className="form-label">Nome *</label>
+                                <label className="form-label">{formData.tipo_pessoa === 'PJ' ? 'Nome Fantasia *' : 'Nome *'}</label>
                                 <input
                                     type="text"
                                     name="nome"
@@ -254,28 +337,50 @@ function Customers() {
                                     required
                                 />
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">CPF <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opcional)</span></label>
-                                <input
-                                    type="text"
-                                    name="cpf"
-                                    className={`form-input ${cpfError ? 'input-error' : ''}`}
-                                    value={formData.cpf}
-                                    onChange={handleInputChange}
-                                    placeholder="000.000.000-00"
-                                    style={{ textTransform: 'none' }}
-                                />
-                                {cpfError && (
-                                    <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '4px', display: 'block' }}>
-                                        {cpfError}
-                                    </span>
-                                )}
-                                {!cpfError && (
-                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
-                                        💡 Deixe em branco para clientes sem cadastro de CPF
-                                    </span>
-                                )}
-                            </div>
+
+                            {formData.tipo_pessoa === 'PF' ? (
+                                <div className="form-group">
+                                    <label className="form-label">CPF <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opcional)</span></label>
+                                    <input
+                                        type="text"
+                                        name="cpf"
+                                        className={`form-input ${cpfError ? 'input-error' : ''}`}
+                                        value={formData.cpf}
+                                        onChange={handleInputChange}
+                                        placeholder="000.000.000-00"
+                                        style={{ textTransform: 'none' }}
+                                    />
+                                    {cpfError && <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '4px', display: 'block' }}>{cpfError}</span>}
+                                    {!cpfError && <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>💡 Deixe em branco para clientes sem CPF</span>}
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="form-group">
+                                        <label className="form-label">CNPJ <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opcional)</span></label>
+                                        <input
+                                            type="text"
+                                            name="cnpj"
+                                            className={`form-input ${cnpjError ? 'input-error' : ''}`}
+                                            value={formData.cnpj}
+                                            onChange={handleInputChange}
+                                            placeholder="00.000.000/0001-00"
+                                            style={{ textTransform: 'none' }}
+                                        />
+                                        {cnpjError && <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '4px', display: 'block' }}>{cnpjError}</span>}
+                                    </div>
+                                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                        <label className="form-label">Razão Social</label>
+                                        <input
+                                            type="text"
+                                            name="razao_social"
+                                            className="form-input"
+                                            value={formData.razao_social}
+                                            onChange={handleInputChange}
+                                            placeholder="Razão social da empresa"
+                                        />
+                                    </div>
+                                </>
+                            )}
                             <div className="form-group">
                                 <label className="form-label">Telefone</label>
                                 <input
@@ -354,8 +459,8 @@ function Customers() {
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     <button className="btn btn-sm btn-secondary" onClick={() => {
                         const sep = ';';
-                        const header = ['Nome','CPF','Telefone','Email','Endereço'].join(sep);
-                        const lines = filtered.map(c => [c.nome, c.cpf||'', c.telefone||'', c.email||'', c.endereco||''].join(sep));
+                        const header = ['Nome','Tipo','CPF','CNPJ','Razão Social','Telefone','Email','Endereço'].join(sep);
+                        const lines = filtered.map(c => [c.nome, c.tipo_pessoa||'PF', c.cpf||'', c.cnpj||'', c.razao_social||'', c.telefone||'', c.email||'', c.endereco||''].join(sep));
                         const csv = '﻿' + [header, ...lines].join('\n');
                         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
                         const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
@@ -364,7 +469,7 @@ function Customers() {
                     <input
                         type="text"
                         className="form-input search-input"
-                        placeholder="🔍 Buscar por nome, CPF ou telefone..."
+                        placeholder="🔍 Buscar por nome, CPF, CNPJ ou telefone..."
                         value={search}
                         onChange={(e) => handleSearch(e.target.value)}
                         style={{ textTransform: 'none' }}
@@ -378,7 +483,8 @@ function Customers() {
                             <thead>
                                 <tr>
                                     <th>Nome</th>
-                                    <th>CPF</th>
+                                    <th>Tipo</th>
+                                    <th>CPF / CNPJ</th>
                                     <th>Telefone</th>
                                     <th>Email</th>
                                     <th>Ações</th>
@@ -387,9 +493,20 @@ function Customers() {
                             <tbody>
                                 {paginated.map((customer) => (
                                     <tr key={customer.id}>
-                                        <td>{customer.nome}</td>
+                                        <td>
+                                            <div>{customer.nome}</div>
+                                            {customer.razao_social && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{customer.razao_social}</div>}
+                                        </td>
+                                        <td>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '2px 8px', borderRadius: '999px', background: customer.tipo_pessoa === 'PJ' ? 'rgba(99,102,241,0.15)' : 'rgba(16,185,129,0.15)', color: customer.tipo_pessoa === 'PJ' ? '#818cf8' : '#10b981' }}>
+                                                {customer.tipo_pessoa === 'PJ' ? '🏢 PJ' : '👤 PF'}
+                                            </span>
+                                        </td>
                                         <td style={{ fontFamily: 'monospace', letterSpacing: '0.05em' }}>
-                                            {maskCPFDisplay(customer.cpf)}
+                                            {customer.tipo_pessoa === 'PJ'
+                                                ? (customer.cnpj || '-')
+                                                : maskCPFDisplay(customer.cpf)
+                                            }
                                         </td>
                                         <td>{customer.telefone || '-'}</td>
                                         <td>{customer.email || '-'}</td>
