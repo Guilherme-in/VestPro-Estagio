@@ -183,8 +183,9 @@ class Product(ProductBase):
 
 class SupplierBase(BaseModel):
     nome: str = Field(..., min_length=1, max_length=200)
-    tipo: str = Field("formal", pattern="^(formal|informal|autonomo)$")
+    tipo: str = Field("formal", pattern="^(formal|informal|autonomo|pessoa_fisica)$")
     cnpj: Optional[str] = Field(None, max_length=18)
+    cpf: Optional[str] = Field(None, max_length=14)
     telefone: Optional[str] = Field(None, max_length=20)
     email: Optional[str] = Field(None, max_length=100)
     endereco: Optional[str] = None
@@ -196,8 +197,9 @@ class SupplierCreate(SupplierBase):
 
 class SupplierUpdate(BaseModel):
     nome: Optional[str] = Field(None, min_length=1, max_length=200)
-    tipo: Optional[str] = Field(None, pattern="^(formal|informal)$")
+    tipo: Optional[str] = Field(None, pattern="^(formal|informal|autonomo|pessoa_fisica)$")
     cnpj: Optional[str] = Field(None, max_length=18)
+    cpf: Optional[str] = Field(None, max_length=14)
     telefone: Optional[str] = Field(None, max_length=20)
     email: Optional[str] = Field(None, max_length=100)
     endereco: Optional[str] = None

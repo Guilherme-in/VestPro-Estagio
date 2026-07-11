@@ -381,9 +381,20 @@ function PDV() {
                             </div>
                             <div className="pdv-qty-control">
                                 <button className="pdv-qty-btn" onClick={() => changeQty(item.product_id, -1)}>−</button>
-                                <span className="pdv-qty-val">{item.quantidade}</span>
-                                <button className="pdv-qty-btn" onClick={() => changeQty(item.product_id, +1)}>+</button>
+                                <span className="pdv-qty-val" title={`Estoque: ${item.estoque_max} un.`}>{item.quantidade}</span>
+                                <button
+                                    className="pdv-qty-btn"
+                                    onClick={() => changeQty(item.product_id, +1)}
+                                    disabled={item.quantidade >= item.estoque_max}
+                                    title={item.quantidade >= item.estoque_max ? `Limite de estoque: ${item.estoque_max} un.` : ''}
+                                    style={item.quantidade >= item.estoque_max ? { opacity: 0.35, cursor: 'not-allowed' } : {}}
+                                >+</button>
                             </div>
+                            {item.quantidade >= item.estoque_max && (
+                                <div style={{ fontSize: '0.7rem', color: '#f59e0b', gridColumn: '1 / -1', marginTop: '-6px' }}>
+                                    ⚠️ Estoque máximo atingido ({item.estoque_max} un.)
+                                </div>
+                            )}
                             <div className="pdv-cart-item-sub" style={{ color: precoEfetivo(item) < item.preco_unitario ? '#10b981' : undefined }}>
                                 {fmt(item.quantidade * precoEfetivo(item))}
                             </div>

@@ -75,6 +75,26 @@ def create_registro(
     if registros_hoje and registros_hoje[-1].tipo == "fechamento":
         raise HTTPException(status_code=400, detail="Caixa já foi fechado hoje.")
 
+    if data.tipo == "sangria" and data.valor > 0:
+        from app.routers import sales as sales_router
+        abertura = next((r for r in registros_hoje if r.tipo == "abertura"), None)
+        sangrias = sum(r.valor for r in registros_hoje if r.tipo == "sangria")
+        suprimentos = sum(r.valor for r in registros_hoje if r.tipo == "suprimento")
+        today_start_dt = datetime.combine(date.today(), datetime.min.time())
+        from app import models as _m
+        total_vendas = sum(
+            v.total for v in db.query(_m.Sale).filter(
+                _m.Sale.tenant_id == current_user.tenant_id,
+                _m.Sale.created_at >= today_start_dt,
+            ).all()
+        )
+        saldo_atual = (abertura.valor if abertura else 0) + total_vendas + suprimentos - sangrias
+        if data.valor > saldo_atual:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Sangria de R$ {data.valor:.2f} excede o saldo atual do caixa de R$ {saldo_atual:.2f}. O caixa não pode ficar negativo."
+            )
+
     registro = models.CaixaRegistro(
         tenant_id=current_user.tenant_id,
         user_id=current_user.id,

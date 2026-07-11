@@ -20,6 +20,27 @@ const maskPhone = (v) => {
     return `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
 };
 
+const maskCPF = (v) => {
+    v = v.replace(/\D/g, '').slice(0, 11);
+    if (v.length <= 3) return v;
+    if (v.length <= 6) return `${v.slice(0,3)}.${v.slice(3)}`;
+    if (v.length <= 9) return `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6)}`;
+    return `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6,9)}-${v.slice(9)}`;
+};
+
+const validateCPF = (cpf) => {
+    const n = cpf.replace(/\D/g, '');
+    if (n.length !== 11) return false;
+    if (/^(\d)\1+$/.test(n)) return false;
+    const calc = (x) => {
+        let s = 0;
+        for (let i = 0; i < x; i++) s += parseInt(n[i]) * (x + 1 - i);
+        const r = (s * 10) % 11;
+        return r === 10 || r === 11 ? 0 : r;
+    };
+    return calc(9) === parseInt(n[9]) && calc(10) === parseInt(n[10]);
+};
+
 const validateCNPJ = (cnpj) => {
     const n = cnpj.replace(/\D/g, '');
     if (n.length !== 14) return false;
@@ -43,10 +64,12 @@ function Suppliers() {
     const [editingSupplier, setEditingSupplier] = useState(null);
     const [search, setSearch] = useState('');
     const [cnpjError, setCnpjError] = useState('');
+    const [cpfError, setCpfError] = useState('');
     const [formData, setFormData] = useState({
         tipo: 'formal',
         nome: '',
         cnpj: '',
+        cpf: '',
         telefone: '',
         email: '',
         endereco: '',
@@ -76,14 +99,17 @@ function Suppliers() {
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         if (name === 'cnpj') {
-            const masked = maskCNPJ(value);
             setCnpjError('');
-            setFormData(prev => ({ ...prev, cnpj: masked }));
+            setFormData(prev => ({ ...prev, cnpj: maskCNPJ(value) }));
+        } else if (name === 'cpf') {
+            setCpfError('');
+            setFormData(prev => ({ ...prev, cpf: maskCPF(value) }));
         } else if (name === 'telefone') {
             setFormData(prev => ({ ...prev, telefone: maskPhone(value) }));
         } else if (name === 'tipo') {
-            setFormData(prev => ({ ...prev, tipo: value, cnpj: '' }));
+            setFormData(prev => ({ ...prev, tipo: value, cnpj: '', cpf: '' }));
             setCnpjError('');
+            setCpfError('');
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
         }
@@ -101,9 +127,20 @@ function Suppliers() {
                 return;
             }
         }
+        if (formData.tipo === 'pessoa_fisica' && formData.cpf) {
+            if (!validateCPF(formData.cpf)) {
+                setCpfError('CPF inválido. Verifique os dígitos.');
+                return;
+            }
+        }
         setCnpjError('');
+        setCpfError('');
         try {
-            const data = { ...formData, cnpj: formData.cnpj || null };
+            const data = {
+                ...formData,
+                cnpj: formData.tipo === 'formal' ? (formData.cnpj || null) : null,
+                cpf: formData.tipo === 'pessoa_fisica' ? (formData.cpf || null) : null,
+            };
             if (editingSupplier) {
                 await suppliersAPI.update(editingSupplier.id, data);
                 showMessage('Fornecedor atualizado com sucesso!');
@@ -124,11 +161,13 @@ function Suppliers() {
             tipo: supplier.tipo || 'formal',
             nome: supplier.nome,
             cnpj: supplier.cnpj || '',
+            cpf: supplier.cpf || '',
             telefone: supplier.telefone || '',
             email: supplier.email || '',
             endereco: supplier.endereco || '',
         });
         setCnpjError('');
+        setCpfError('');
         setShowForm(true);
     };
 
@@ -144,9 +183,10 @@ function Suppliers() {
     };
 
     const resetForm = () => {
-        setFormData({ tipo: 'formal', nome: '', cnpj: '', telefone: '', email: '', endereco: '' });
+        setFormData({ tipo: 'formal', nome: '', cnpj: '', cpf: '', telefone: '', email: '', endereco: '' });
         setEditingSupplier(null);
         setCnpjError('');
+        setCpfError('');
         setShowForm(false);
     };
 
@@ -193,7 +233,9 @@ function Suppliers() {
                             <div className="form-group">
                                 <label className="form-label">Tipo *</label>
                                 <select name="tipo" className="form-input" value={formData.tipo} onChange={handleInputChange}>
-                                    <option value="formal">Formal (com CNPJ)</option>
+                                    <option value="formal">Pessoa Jurídica (com CNPJ)</option>
+                                    <option value="pessoa_fisica">Pessoa Física (com CPF)</option>
+                                    <option value="autonomo">Autônomo / MEI</option>
                                     <option value="informal">Informal (sacoleiro, feira, etc.)</option>
                                 </select>
                             </div>
@@ -222,6 +264,21 @@ function Suppliers() {
                                         style={{ textTransform: 'none' }}
                                     />
                                     {cnpjError && <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '4px', display: 'block' }}>{cnpjError}</span>}
+                                </div>
+                            )}
+                            {formData.tipo === 'pessoa_fisica' && (
+                                <div className="form-group">
+                                    <label className="form-label">CPF <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opcional)</span></label>
+                                    <input
+                                        type="text"
+                                        name="cpf"
+                                        className={`form-input ${cpfError ? 'input-error' : ''}`}
+                                        value={formData.cpf}
+                                        onChange={handleInputChange}
+                                        placeholder="000.000.000-00"
+                                        style={{ textTransform: 'none' }}
+                                    />
+                                    {cpfError && <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '4px', display: 'block' }}>{cpfError}</span>}
                                 </div>
                             )}
 
@@ -316,8 +373,8 @@ function Suppliers() {
                                     <tr key={supplier.id}>
                                         <td>{supplier.nome}</td>
                                         <td>
-                                            <span className={`badge ${supplier.tipo === 'formal' ? 'badge-primary' : 'badge-secondary'}`}>
-                                                {supplier.tipo === 'formal' ? 'Formal' : 'Informal'}
+                                            <span className={`badge ${supplier.tipo === 'formal' ? 'badge-primary' : supplier.tipo === 'pessoa_fisica' ? 'badge-success' : 'badge-secondary'}`}>
+                                                {{ formal: 'Pessoa Jurídica', pessoa_fisica: 'Pessoa Física', autonomo: 'Autônomo/MEI', informal: 'Informal' }[supplier.tipo] || supplier.tipo}
                                             </span>
                                         </td>
                                         <td>{supplier.cnpj || '-'}</td>

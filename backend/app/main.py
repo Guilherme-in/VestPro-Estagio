@@ -27,6 +27,8 @@ def run_migrations():
                 "ALTER TABLE customers ADD COLUMN IF NOT EXISTS tipo_pessoa VARCHAR(2) NOT NULL DEFAULT 'PF'",
                 "ALTER TABLE customers ADD COLUMN IF NOT EXISTS cnpj VARCHAR(18)",
                 "ALTER TABLE customers ADD COLUMN IF NOT EXISTS razao_social VARCHAR(200)",
+                "ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS cpf VARCHAR(14)",
+                "ALTER TABLE suppliers ALTER COLUMN tipo TYPE VARCHAR(20)",
             ]
             for sql in migrations:
                 conn.execute(text(sql))
